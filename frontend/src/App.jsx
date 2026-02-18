@@ -22,6 +22,7 @@ import {
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import SpeechButton from "./components/SpeechButton";
+import WeatherAdvisory from "./components/WeatherAdvisory";
 
 const API = "http://localhost:8000";
 
@@ -514,6 +515,7 @@ const TABS = [
   { id: "growth", label: "tabs.growth", icon: Sprout },
   { id: "advisory", label: "tabs.advisory", icon: LineChart },
   { id: "disease", label: "tabs.disease", icon: Microscope },
+  { id: "weather", label: "tabs.weather", icon: CloudRain },
 ];
 
 export default function App() {
@@ -561,6 +563,7 @@ export default function App() {
         {tab === "growth" && <GrowthPlanner />}
         {tab === "advisory" && <DailyAdvisory />}
         {tab === "disease" && <DiseaseDetector />}
+        {tab === "weather" && <WeatherAdvisory />}
       </main>
 
       {/* Footer */}

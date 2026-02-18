@@ -5,7 +5,8 @@
     "tabs": {
         "growth": "Growth Plan",
         "advisory": "Daily Advisory",
-        "disease": "Disease Detect"
+        "disease": "Disease Detect",
+        "weather": "Local Weather"
     },
     "crops": {
         "wheat": "Wheat",
@@ -90,6 +91,20 @@
                 "prevention": "Prevention",
                 "analysis_method": "Analysis: {{method}}"
             }
+        },
+        "weather": {
+            "title": "Local Weather & Farming Advisory",
+            "subtitle": "Real-time forecast & agricultural insights",
+            "search_placeholder": "Enter Village/City/Pincode",
+            "locate_me": "Use My Location",
+            "current": "Current Weather",
+            "forecast": "5-Day Forecast",
+            "advisory": "Farming Advisory",
+            "alerts": "Alerts",
+            "humidity": "Humidity",
+            "wind": "Wind",
+            "rain": "Rain Chance",
+            "temp": "Temp"
         }
     },
     "footer": "KrishiAI MVP · Region-specific crop intelligence for Indian farmers · Built with FastAPI + React"
