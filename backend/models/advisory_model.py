@@ -1,8 +1,9 @@
+from typing import Dict, Any, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
-from typing import Dict, Any, Tuple
+from translations import ADVISORY_MESSAGES  # Import translations
 
 CROP_STAGES = [
     "Germination", "Vegetative", "Tillering",
@@ -76,7 +77,10 @@ def get_daily_advisory(
     rainfall_last_3_days: float,
     crop_stage: str,
     days_since_last_irrigation: int,
+    lang: str = "en",
 ) -> Dict[str, Any]:
+    lang = lang if lang in ["en", "hi"] else "en"
+    trans = ADVISORY_MESSAGES.get(lang, ADVISORY_MESSAGES["en"])
 
     # Encode stage safely
     if crop_stage in CROP_STAGES:
@@ -98,28 +102,39 @@ def get_daily_advisory(
     rec_parts = []
     if irr_pred:
         if soil_moisture < 20:
-            rec_parts.append(f"⚠️ URGENT: Soil moisture critically low ({soil_moisture}%). Irrigate within 12 hours.")
+            rec_parts.append(trans.get("urgent_irrigation", "").format(soil_moisture=soil_moisture))
         else:
-            rec_parts.append(f"💧 Irrigation recommended within 24 hours. Current soil moisture: {soil_moisture}%.")
+            rec_parts.append(trans.get("irrigation_needed", "").format(soil_moisture=soil_moisture))
     else:
-        rec_parts.append(f"✅ Soil moisture adequate ({soil_moisture}%). No irrigation needed today.")
+        rec_parts.append(trans.get("irrigation_ok", "").format(soil_moisture=soil_moisture))
 
     if fert_pred:
-        stage_advice = {
-            "Tillering": "Apply 25 kg urea/acre as top dressing.",
-            "Vegetative": "Apply NPK (20-20-0) at 50 kg/acre.",
-            "Jointing": "Apply 20 kg potassium chloride/acre.",
-            "Flowering": "Foliar spray of 2% KNO₃ recommended.",
+        # Note: These stage-specific messages are also in the translation dict now?
+        # Actually I put them in ADVISORY_MESSAGES with keys `fert_tillering`, etc.
+        # But I need to map the crop_stage string to these keys.
+        
+        stage_key_map = {
+            "Tillering": "fert_tillering",
+            "Vegetative": "fert_vegetative",
+            "Jointing": "fert_jointing",
+            "Flowering": "fert_flowering",
         }
-        fert_text = stage_advice.get(crop_stage, "Apply balanced NPK as per soil test recommendation.")
-        rec_parts.append(f"🌱 Fertilizer required: {fert_text}")
+        
+        key = stage_key_map.get(crop_stage, "fert_default")
+        fert_text_content = trans.get(key, trans.get("fert_default"))
+        
+        # In my translation file I had full sentences for these.
+        # Let's check: "fert_tillering": "Apply 25 kg urea/acre as top dressing."
+        # And the prefix: "fert_required_prefix": "🌱 Fertilizer required: "
+        
+        rec_parts.append(f"{trans.get('fert_required_prefix')}{fert_text_content}")
     else:
-        rec_parts.append("🌿 No additional fertilization needed today.")
+        rec_parts.append(trans.get("fert_not_needed"))
 
     if temperature > 38:
-        rec_parts.append("🌡️ Heat stress alert: Consider irrigation during early morning hours.")
+        rec_parts.append(trans.get("heat_alert"))
     if humidity > 85 and temperature > 28:
-        rec_parts.append("🍄 High humidity + temperature: Monitor for fungal diseases.")
+        rec_parts.append(trans.get("humidity_alert"))
 
     return {
         "irrigation_required": irr_pred,

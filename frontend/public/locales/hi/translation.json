@@ -1,0 +1,96 @@
+{
+    "app_title": "कृषि एआई",
+    "app_tagline": "बुद्धिमान फसल सलाहकार मंच",
+    "ai_active": "एआई मॉडल सक्रिय",
+    "tabs": {
+        "growth": "विकास योजना",
+        "advisory": "दैनिक सलाहकार",
+        "disease": "रोग पहचान"
+    },
+    "crops": {
+        "wheat": "गेहूँ",
+        "rice": "धान",
+        "jowar": "ज्वार",
+        "maize": "मक्का"
+    },
+    "stages": {
+        "Germination": "अंकुरण",
+        "Vegetative": "वानस्पतिक विकास",
+        "Tillering": "कल्ले निकलना",
+        "Jointing": "गाठें बनना",
+        "Tasseling": "टेसलिंग",
+        "Silking": "सिल्किंग",
+        "Flowering": "फूल आना",
+        "Maturity": "पकना"
+    },
+    "common": {
+        "analyzing": "विश्लेषण हो रहा है...",
+        "generating": "उत्पन्न हो रहा है...",
+        "confidence": "{{percent}}% विश्वास"
+    },
+    "sections": {
+        "growth": {
+            "title": "फसल विकास योजनाकार",
+            "subtitle": "जीडीडी-आधारित चरण अनुमान और मौसमी रोडमैप",
+            "form": {
+                "crop_type": "फसल का प्रकार",
+                "sowing_date": "बुवाई की तारीख",
+                "district": "जिला",
+                "max_temp": "अधिकतम तापमान (°C)",
+                "min_temp": "न्यूनतम तापमान (°C)",
+                "submit": "वर्ष योजना उत्पन्न करें"
+            },
+            "results": {
+                "current_stage": "वर्तमान चरण",
+                "days_since_sowing": "बुवाई के बाद के दिन",
+                "accumulated_gdd": "संचित जीडीडी",
+                "daily_gdd": "दैनिक जीडीडी",
+                "irrigation": "सिंचाई",
+                "next_window": "अगली अवधि {{days}} दिनों में",
+                "fertilizer": "उर्वरक",
+                "risk_alert": "जोखिम चेतावनी",
+                "season_timeline": "मौसम समयरेखा — {{crop}}",
+                "timeline_days": "दिन {{start}}–{{end}}"
+            }
+        },
+        "advisory": {
+            "title": "दैनिक क्षेत्र सलाहकार",
+            "subtitle": "एमएल-आधारित सिंचाई और उर्वरक निर्णय",
+            "form": {
+                "soil_moisture": "मृदा नमी (%)",
+                "temperature": "तापमान (°C)",
+                "humidity": "आर्द्रता (%)",
+                "rainfall_last_3_days": "पिछले 3 दिनों में वर्षा (मिमी)",
+                "days_since_irrigation": "सिंचाई के बाद के दिन",
+                "current_crop_stage": "वर्तमान फसल चरण",
+                "submit": "आज की सिफारिश प्राप्त करें"
+            },
+            "results": {
+                "irrigation": "सिंचाई",
+                "fertilizer": "उर्वरक",
+                "required": "आवश्यक",
+                "not_needed": "आवश्यक नहीं",
+                "full_recommendation": "पूर्ण सिफारिश"
+            }
+        },
+        "disease": {
+            "title": "रोग का पता लगाना",
+            "subtitle": "एआई निदान के लिए फसल की छवि अपलोड करें",
+            "upload": {
+                "placeholder": "फसल की छवि अपलोड करने के लिए क्लिक करें या खींचें",
+                "hint": "जेपीईजी, पीएनजी समर्थित",
+                "btn_analyzing": "छवि का विश्लेषण हो रहा है...",
+                "btn_analyze": "छवि का विश्लेषण करें",
+                "file_size": "{{size}} केबी"
+            },
+            "results": {
+                "healthy": "स्वस्थ",
+                "severity": "गंभीरता: {{level}}",
+                "treatment": "उपचार",
+                "prevention": "रोकथाम",
+                "analysis_method": "विश्लेषण: {{method}}"
+            }
+        }
+    },
+    "footer": "कृषि एआई एमवीपी · भारतीय किसानों के लिए क्षेत्र-विशिष्ट फसल खुफिया · फास्टएपीआई + रिएक्ट के साथ निर्मित"
+}

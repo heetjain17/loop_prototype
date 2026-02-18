@@ -59,7 +59,7 @@ def root():
 
 
 @app.post("/growth-plan")
-def growth_plan(req: GrowthPlanRequest):
+def growth_plan(req: GrowthPlanRequest, lang: str = "en"):
     supported_crops = ["wheat", "rice", "jowar", "maize"]
     if req.crop_type.lower() not in supported_crops:
         raise HTTPException(
@@ -76,6 +76,7 @@ def growth_plan(req: GrowthPlanRequest):
             district=req.district,
             tmax=req.tmax,
             tmin=req.tmin,
+            lang=lang,
         )
     except ValueError as e:
         raise HTTPException(
@@ -86,7 +87,7 @@ def growth_plan(req: GrowthPlanRequest):
 
 
 @app.post("/daily-advisory")
-def daily_advisory(req: DailyAdvisoryRequest):
+def daily_advisory(req: DailyAdvisoryRequest, lang: str = "en"):
     if not (0 <= req.soil_moisture <= 100):
         raise HTTPException(status_code=400, detail="soil_moisture must be 0–100.")
     if not (0 <= req.humidity <= 100):
@@ -101,12 +102,13 @@ def daily_advisory(req: DailyAdvisoryRequest):
         rainfall_last_3_days=req.rainfall_last_3_days,
         crop_stage=req.crop_stage,
         days_since_last_irrigation=req.days_since_last_irrigation,
+        lang=lang,
     )
     return result
 
 
 @app.post("/detect-disease")
-async def detect_disease_endpoint(image: UploadFile = File(...)):
+async def detect_disease_endpoint(image: UploadFile = File(...), lang: str = "en"):
     allowed_types = ["image/jpeg", "image/png", "image/webp", "image/jpg"]
     if image.content_type not in allowed_types:
         raise HTTPException(
@@ -117,7 +119,7 @@ async def detect_disease_endpoint(image: UploadFile = File(...)):
     contents = await image.read()
     file_size = len(contents)
 
-    result = detect_disease(filename=image.filename or "", file_size=file_size)
+    result = detect_disease(filename=image.filename or "", file_size=file_size, lang=lang)
     return result
 
 

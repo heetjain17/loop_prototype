@@ -1,0 +1,96 @@
+{
+    "app_title": "KrishiAI",
+    "app_tagline": "Intelligent Crop Advisory Platform",
+    "ai_active": "AI Models Active",
+    "tabs": {
+        "growth": "Growth Plan",
+        "advisory": "Daily Advisory",
+        "disease": "Disease Detect"
+    },
+    "crops": {
+        "wheat": "Wheat",
+        "rice": "Rice",
+        "jowar": "Jowar",
+        "maize": "Maize"
+    },
+    "stages": {
+        "Germination": "Germination",
+        "Vegetative": "Vegetative",
+        "Tillering": "Tillering",
+        "Jointing": "Jointing",
+        "Tasseling": "Tasseling",
+        "Silking": "Silking",
+        "Flowering": "Flowering",
+        "Maturity": "Maturity"
+    },
+    "common": {
+        "analyzing": "Analyzing...",
+        "generating": "Generating...",
+        "confidence": "{{percent}}% confidence"
+    },
+    "sections": {
+        "growth": {
+            "title": "Crop Growth Planner",
+            "subtitle": "GDD-based stage estimation & seasonal roadmap",
+            "form": {
+                "crop_type": "Crop Type",
+                "sowing_date": "Sowing Date",
+                "district": "District",
+                "max_temp": "Max Temp (°C)",
+                "min_temp": "Min Temp (°C)",
+                "submit": "Generate Year Plan"
+            },
+            "results": {
+                "current_stage": "Current Stage",
+                "days_since_sowing": "Days Since Sowing",
+                "accumulated_gdd": "Accumulated GDD",
+                "daily_gdd": "Daily GDD",
+                "irrigation": "Irrigation",
+                "next_window": "Next window in {{days}} days",
+                "fertilizer": "Fertilizer",
+                "risk_alert": "Risk Alert",
+                "season_timeline": "Season Timeline — {{crop}}",
+                "timeline_days": "Day {{start}}–{{end}}"
+            }
+        },
+        "advisory": {
+            "title": "Daily Field Advisory",
+            "subtitle": "ML-powered irrigation & fertilizer decisions",
+            "form": {
+                "soil_moisture": "Soil Moisture (%)",
+                "temperature": "Temperature (°C)",
+                "humidity": "Humidity (%)",
+                "rainfall_last_3_days": "Rainfall last 3 days (mm)",
+                "days_since_irrigation": "Days Since Last Irrigation",
+                "current_crop_stage": "Current Crop Stage",
+                "submit": "Get Today's Recommendation"
+            },
+            "results": {
+                "irrigation": "Irrigation",
+                "fertilizer": "Fertilizer",
+                "required": "REQUIRED",
+                "not_needed": "NOT NEEDED",
+                "full_recommendation": "Full Recommendation"
+            }
+        },
+        "disease": {
+            "title": "Disease Detection",
+            "subtitle": "Upload a crop image for AI diagnosis",
+            "upload": {
+                "placeholder": "Click or drag to upload crop image",
+                "hint": "JPEG, PNG supported",
+                "btn_analyzing": "Analyzing Image...",
+                "btn_analyze": "Analyze Image",
+                "file_size": "{{size}} KB"
+            },
+            "results": {
+                "healthy": "Healthy",
+                "severity": "Severity: {{level}}",
+                "treatment": "Treatment",
+                "prevention": "Prevention",
+                "analysis_method": "Analysis: {{method}}"
+            }
+        }
+    },
+    "footer": "KrishiAI MVP · Region-specific crop intelligence for Indian farmers · Built with FastAPI + React"
+}

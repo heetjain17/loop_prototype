@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from typing import Dict, Any
+from translations import FERTILIZER_WINDOWS, RISK_ALERTS  # Import translations
 
 CROP_STAGES = {
     "wheat": [
@@ -50,18 +51,6 @@ IRRIGATION_SCHEDULE = {
     "Maturity": 10,
 }
 
-FERTILIZER_WINDOWS = {
-    "Germination": None,
-    "Tillering": "Apply 25kg urea/acre within 5 days",
-    "Vegetative": "Apply NPK 20-20-0 at 50kg/acre this week",
-    "Jointing": "Apply 20kg potassium chloride/acre",
-    "Tasseling": "Top-dress with 15kg urea/acre",
-    "Silking": "Apply micronutrient boron spray",
-    "Flowering": "Apply potash 30kg/acre to improve grain filling",
-    "Maturity": None,
-}
-
-
 def calculate_gdd(tmax: float, tmin: float, base_temp: float) -> float:
     avg_temp = (tmax + tmin) / 2
     return max(0, avg_temp - base_temp)
@@ -73,10 +62,15 @@ def get_growth_plan(
     district: str,
     tmax: float,
     tmin: float,
+    lang: str = "en",
 ) -> Dict[str, Any]:
     crop_type = crop_type.lower()
     stages = CROP_STAGES.get(crop_type, CROP_STAGES["wheat"])
     base_temp = BASE_TEMPS.get(crop_type, 5)
+
+    lang = lang if lang in ["en", "hi"] else "en"
+    trans_fert = FERTILIZER_WINDOWS.get(lang, FERTILIZER_WINDOWS["en"])
+    trans_risk = RISK_ALERTS.get(lang, RISK_ALERTS["en"])
 
     sow_dt = datetime.strptime(sowing_date, "%Y-%m-%d").date()
     today = date.today()
@@ -112,18 +106,19 @@ def get_growth_plan(
     next_irrigation = stage_irrigation_interval - days_last_irrigation
 
     # Fertilizer
-    fert_rec = FERTILIZER_WINDOWS.get(current_stage) or "No fertilizer required at this stage"
+    # Check if we have specific translation for the stage, otherwise fallback to default
+    fert_rec = trans_fert.get(current_stage, trans_fert.get("default", "No fertilizer required"))
 
     # Risk alert
     risk_alert = None
     if tmax > 38:
-        risk_alert = "High heat stress risk. Consider afternoon irrigation to cool crop canopy."
+        risk_alert = trans_risk.get("heat_stress")
     elif tmin < base_temp + 2:
-        risk_alert = f"Temperature near base threshold. Slight delay in {current_stage} stage expected."
+        risk_alert = trans_risk.get("temp_threshold", "").format(stage=current_stage)
     elif gdd_ratio > 1.3:
-        risk_alert = "Warmer-than-average season. Crop may reach maturity 7–10 days earlier than scheduled."
+        risk_alert = trans_risk.get("warmer_season")
     else:
-        risk_alert = "Crop progressing normally. No immediate climate risk detected."
+        risk_alert = trans_risk.get("normal")
 
     return {
         "crop_type": crop_type.capitalize(),

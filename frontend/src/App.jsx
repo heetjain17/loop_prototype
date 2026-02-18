@@ -1,24 +1,27 @@
 import { useState } from "react";
-import { 
-  Sprout, 
-  LineChart, 
-  Microscope, 
-  Droplets, 
-  ThermometerSun, 
-  CloudRain, 
-  Calendar, 
-  AlertTriangle, 
-  CheckCircle2, 
-  Info, 
-  Zap, 
-  ShieldCheck, 
-  Pill, 
-  Camera, 
-  FileImage, 
+import {
+  Sprout,
+  LineChart,
+  Microscope,
+  Droplets,
+  ThermometerSun,
+  CloudRain,
+  Calendar,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  Zap,
+  ShieldCheck,
+  Pill,
+  Camera,
+  FileImage,
   Upload,
   ArrowRight,
   Leaf
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "./components/LanguageSwitcher";
+import SpeechButton from "./components/SpeechButton";
 
 const API = "http://localhost:8000";
 
@@ -42,16 +45,18 @@ function Card({ children, className }) {
 }
 
 function Spinner() {
+  const { t } = useTranslation();
   return (
     <div className="spinner-wrap">
       <div className="spinner" />
-      <span>Analyzing...</span>
+      <span>{t('common.analyzing')}</span>
     </div>
   );
 }
 
 // ── Section: Growth Plan ───────────────────────────────────────────────────────
 function GrowthPlanner() {
+  const { t, i18n } = useTranslation();
   const [form, setForm] = useState({
     crop_type: "wheat",
     sowing_date: "",
@@ -69,7 +74,8 @@ function GrowthPlanner() {
     e.preventDefault();
     setError(""); setResult(null); setLoading(true);
     try {
-      const res = await fetch(`${API}/growth-plan`, {
+      const lang = i18n.language.split("-")[0];
+      const res = await fetch(`${API}/growth-plan?lang=${lang}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -106,23 +112,23 @@ function GrowthPlanner() {
       <div className="section-header">
         <Sprout className="section-icon" strokeWidth={1.5} />
         <div>
-          <h2>Crop Growth Planner</h2>
-          <p className="section-sub">GDD-based stage estimation & seasonal roadmap</p>
+          <h2>{t('sections.growth.title')}</h2>
+          <p className="section-sub">{t('sections.growth.subtitle')}</p>
         </div>
       </div>
 
       <form onSubmit={submit} className="input-grid">
         <label className="field">
-          <span>Crop Type</span>
+          <span>{t('sections.growth.form.crop_type')}</span>
           <select value={form.crop_type} onChange={e => set("crop_type", e.target.value)}>
             {["wheat", "rice", "jowar", "maize"].map(c => (
-              <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+              <option key={c} value={c}>{t(`crops.${c}`)}</option>
             ))}
           </select>
         </label>
 
         <label className="field">
-          <span>Sowing Date</span>
+          <span>{t('sections.growth.form.sowing_date')}</span>
           <div className="input-icon-wrap">
             <Calendar size={16} className="field-icon" />
             <input type="date" value={form.sowing_date} onChange={e => set("sowing_date", e.target.value)} required />
@@ -130,15 +136,23 @@ function GrowthPlanner() {
         </label>
 
         <label className="field">
-          <span>District</span>
+          <span>{t('sections.growth.form.district')}</span>
           <input type="text" placeholder="e.g. Nashik" value={form.district} onChange={e => set("district", e.target.value)} required />
         </label>
 
         <label className="field">
-          <span>Max Temp (°C)</span>
+          <span>{t('sections.growth.form.max_temp')}</span>
           <div className="input-icon-wrap">
             <ThermometerSun size={16} className="field-icon" />
             <input type="number" placeholder="34" value={form.tmax} onChange={e => set("tmax", e.target.value)} required />
+          </div>
+        </label>
+
+        <label className="field">
+          <span>{t('sections.growth.form.min_temp')}</span>
+          <div className="input-icon-wrap">
+            <ThermometerSun size={16} className="field-icon" />
+            <input type="number" placeholder="18" value={form.tmin} onChange={e => set("tmin", e.target.value)} required />
           </div>
         </label>
 
@@ -152,7 +166,7 @@ function GrowthPlanner() {
 
         <div className="field submit-col">
           <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? "Generating..." : "Generate Year Plan"}
+            {loading ? t('common.generating') : t('sections.growth.form.submit')}
             {!loading && <ArrowRight size={16} style={{ marginLeft: 8 }} />}
           </button>
         </div>
@@ -168,34 +182,41 @@ function GrowthPlanner() {
                 className="stage-pill"
                 style={{ background: stageColors[result.current_stage] || "#5A8A45" }}
               >
-                {result.current_stage}
+                {t(`stages.${result.current_stage}`) || result.current_stage}
               </div>
-              <span className="stage-label">Current Stage</span>
+              <span className="stage-label">{t('sections.growth.results.current_stage')}</span>
             </div>
             <div className="stat-row">
-              <Stat label="Days Since Sowing" value={result.days_since_sowing} unit="days" />
-              <Stat label="Accumulated GDD" value={result.accumulated_gdd} unit="°C-days" />
-              <Stat label="Daily GDD" value={result.daily_gdd} unit="°C/day" />
+              <Stat label={t('sections.growth.results.days_since_sowing')} value={result.days_since_sowing} unit="days" />
+              <Stat label={t('sections.growth.results.accumulated_gdd')} value={result.accumulated_gdd} unit="°C-days" />
+              <Stat label={t('sections.growth.results.daily_gdd')} value={result.daily_gdd} unit="°C/day" />
             </div>
           </Card>
 
           <Card className="action-card">
-            <h3><Droplets size={18} className="inline-icon" /> Irrigation</h3>
-            <p className="action-value">Next window in <strong>{result.next_irrigation_in_days} days</strong></p>
+            <h3><Droplets size={18} className="inline-icon" /> {t('sections.growth.results.irrigation')}</h3>
+            <p className="action-value">{t('sections.growth.results.next_window', { days: result.next_irrigation_in_days })}</p>
           </Card>
 
           <Card className="action-card">
-            <h3><Sprout size={18} className="inline-icon" /> Fertilizer</h3>
+            <h3><Sprout size={18} className="inline-icon" /> {t('sections.growth.results.fertilizer')}</h3>
             <p className="action-value">{result.fertilizer_recommendation}</p>
           </Card>
 
           <Card className="alert-card">
-            <h3><Zap size={18} className="inline-icon" /> Risk Alert</h3>
+            <h3><Zap size={18} className="inline-icon" /> {t('sections.growth.results.risk_alert')}</h3>
             <p>{result.risk_alert}</p>
           </Card>
 
+          <div className="speech-container" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+            <SpeechButton
+              text={`${t('sections.growth.results.current_stage')}: ${t("stages." + result.current_stage) || result.current_stage}. ${t('sections.growth.results.irrigation')}: ${t('sections.growth.results.next_window', { days: result.next_irrigation_in_days })}. ${t('sections.growth.results.fertilizer')}: ${result.fertilizer_recommendation}. ${t('sections.growth.results.risk_alert')}: ${result.risk_alert}`}
+              lang={i18n.language.split("-")[0]}
+            />
+          </div>
+
           <Card className="timeline-card">
-            <h3>Season Timeline — {result.crop_type}</h3>
+            <h3>{t('sections.growth.results.season_timeline', { crop: result.crop_type })}</h3>
             <div className="timeline">
               {result.all_stages.map((s, i) => {
                 const active = s.name === result.current_stage;
@@ -204,8 +225,8 @@ function GrowthPlanner() {
                   <div key={i} className={cn("timeline-step", active && "active", past && "past")}>
                     <div className="tl-dot" style={{ background: active ? stageColors[s.name] : undefined }} />
                     <div className="tl-info">
-                      <strong>{s.name}</strong>
-                      <span>Day {s.start_day}–{s.end_day}</span>
+                      <strong>{t(`stages.${s.name}`) || s.name}</strong>
+                      <span>{t('sections.growth.results.timeline_days', { start: s.start_day, end: s.end_day })}</span>
                     </div>
                   </div>
                 );
@@ -230,6 +251,7 @@ function Stat({ label, value, unit }) {
 
 // ── Section: Daily Advisory ───────────────────────────────────────────────────
 function DailyAdvisory() {
+  const { t, i18n } = useTranslation();
   const [form, setForm] = useState({
     soil_moisture: "",
     temperature: "",
@@ -248,7 +270,8 @@ function DailyAdvisory() {
     e.preventDefault();
     setError(""); setResult(null); setLoading(true);
     try {
-      const res = await fetch(`${API}/daily-advisory`, {
+      const lang = i18n.language.split("-")[0];
+      const res = await fetch(`${API}/daily-advisory?lang=${lang}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -277,18 +300,18 @@ function DailyAdvisory() {
       <div className="section-header">
         <LineChart className="section-icon" strokeWidth={1.5} />
         <div>
-          <h2>Daily Field Advisory</h2>
-          <p className="section-sub">ML-powered irrigation & fertilizer decisions</p>
+          <h2>{t('sections.advisory.title')}</h2>
+          <p className="section-sub">{t('sections.advisory.subtitle')}</p>
         </div>
       </div>
 
       <form onSubmit={submit} className="input-grid">
         {[
-          ["soil_moisture", "Soil Moisture (%)", "28", Droplets],
-          ["temperature", "Temperature (°C)", "34", ThermometerSun],
-          ["humidity", "Humidity (%)", "60", CloudRain],
-          ["rainfall_last_3_days", "Rainfall last 3 days (mm)", "12", CloudRain],
-          ["days_since_last_irrigation", "Days Since Last Irrigation", "4", Calendar],
+          ["soil_moisture", t('sections.advisory.form.soil_moisture'), "28", Droplets],
+          ["temperature", t('sections.advisory.form.temperature'), "34", ThermometerSun],
+          ["humidity", t('sections.advisory.form.humidity'), "60", CloudRain],
+          ["rainfall_last_3_days", t('sections.advisory.form.rainfall_last_3_days'), "12", CloudRain],
+          ["days_since_last_irrigation", t('sections.advisory.form.days_since_irrigation'), "4", Calendar],
         ].map(([key, label, placeholder, IconComp]) => (
           <label className="field" key={key}>
             <span>{label}</span>
@@ -306,15 +329,15 @@ function DailyAdvisory() {
         ))}
 
         <label className="field">
-          <span>Current Crop Stage</span>
+          <span>{t('sections.advisory.form.current_crop_stage')}</span>
           <select value={form.crop_stage} onChange={e => set("crop_stage", e.target.value)}>
-            {CROP_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+            {CROP_STAGES.map(s => <option key={s} value={s}>{t(`stages.${s}`) || s}</option>)}
           </select>
         </label>
 
         <div className="field submit-col">
           <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? "Analyzing..." : "Get Today's Recommendation"}
+            {loading ? t('common.analyzing') : t('sections.advisory.form.submit')}
             {!loading && <ArrowRight size={16} style={{ marginLeft: 8 }} />}
           </button>
         </div>
@@ -329,22 +352,25 @@ function DailyAdvisory() {
               <span className="ind-icon-wrap">
                 {result.irrigation_required ? <Droplets size={32} /> : <CheckCircle2 size={32} />}
               </span>
-              <span className="ind-label">Irrigation</span>
-              <span className="ind-status">{result.irrigation_required ? "REQUIRED" : "NOT NEEDED"}</span>
-              <span className="ind-conf">{Math.round(result.irrigation_confidence * 100)}% confidence</span>
+              <span className="ind-label">{t('sections.advisory.results.irrigation')}</span>
+              <span className="ind-status">{result.irrigation_required ? t('sections.advisory.results.required') : t('sections.advisory.results.not_needed')}</span>
+              <span className="ind-conf">{t('common.confidence', { percent: Math.round(result.irrigation_confidence * 100) })}</span>
             </div>
             <div className={cn("indicator", result.fertilizer_required ? "indicator-yes" : "indicator-no")}>
               <span className="ind-icon-wrap">
                 {result.fertilizer_required ? <Sprout size={32} /> : <CheckCircle2 size={32} />}
               </span>
-              <span className="ind-label">Fertilizer</span>
-              <span className="ind-status">{result.fertilizer_required ? "REQUIRED" : "NOT NEEDED"}</span>
-              <span className="ind-conf">{Math.round(result.fertilizer_confidence * 100)}% confidence</span>
+              <span className="ind-label">{t('sections.advisory.results.fertilizer')}</span>
+              <span className="ind-status">{result.fertilizer_required ? t('sections.advisory.results.required') : t('sections.advisory.results.not_needed')}</span>
+              <span className="ind-conf">{t('common.confidence', { percent: Math.round(result.fertilizer_confidence * 100) })}</span>
             </div>
           </div>
           <Card className="rec-text-card">
-            <h3><Info size={18} className="inline-icon" /> Full Recommendation</h3>
+            <h3><Info size={18} className="inline-icon" /> {t('sections.advisory.results.full_recommendation')}</h3>
             <p className="rec-text">{result.recommendation_text}</p>
+            <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <SpeechButton text={result.recommendation_text} lang={i18n.language.split("-")[0]} />
+            </div>
           </Card>
         </div>
       )}
@@ -354,6 +380,7 @@ function DailyAdvisory() {
 
 // ── Section: Disease Detection ─────────────────────────────────────────────────
 function DiseaseDetector() {
+  const { t, i18n } = useTranslation();
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [result, setResult] = useState(null);
@@ -376,7 +403,8 @@ function DiseaseDetector() {
     try {
       const fd = new FormData();
       fd.append("image", file);
-      const res = await fetch(`${API}/detect-disease`, { method: "POST", body: fd });
+      const lang = i18n.language.split("-")[0];
+      const res = await fetch(`${API}/detect-disease?lang=${lang}`, { method: "POST", body: fd });
       if (!res.ok) {
         const d = await res.json();
         throw new Error(d.detail || "Upload failed");
@@ -402,8 +430,8 @@ function DiseaseDetector() {
       <div className="section-header">
         <Microscope className="section-icon" strokeWidth={1.5} />
         <div>
-          <h2>Disease Detection</h2>
-          <p className="section-sub">Upload a crop image for AI diagnosis</p>
+          <h2>{t('sections.disease.title')}</h2>
+          <p className="section-sub">{t('sections.disease.subtitle')}</p>
         </div>
       </div>
 
@@ -415,8 +443,8 @@ function DiseaseDetector() {
           ) : (
             <div className="upload-placeholder">
               <Camera size={48} className="upload-icon" strokeWidth={1} />
-              <span>Click or drag to upload crop image</span>
-              <span className="upload-hint">JPEG, PNG supported</span>
+              <span>{t('sections.disease.upload.placeholder')}</span>
+              <span className="upload-hint">{t('sections.disease.upload.hint')}</span>
             </div>
           )}
         </label>
@@ -425,7 +453,7 @@ function DiseaseDetector() {
           <div className="upload-meta">
             <FileImage size={14} />
             <span>{file.name}</span>
-            <span>{(file.size / 1024).toFixed(1)} KB</span>
+            <span>{t('sections.disease.upload.file_size', { size: (file.size / 1024).toFixed(1) })}</span>
           </div>
         )}
 
@@ -434,7 +462,7 @@ function DiseaseDetector() {
           onClick={analyze}
           disabled={!file || loading}
         >
-          {loading ? "Analyzing Image..." : "Analyze Image"}
+          {loading ? t('sections.disease.upload.btn_analyzing') : t('sections.disease.upload.btn_analyze')}
           {!loading && <Upload size={16} style={{ marginLeft: 8 }} />}
         </button>
       </div>
@@ -449,39 +477,47 @@ function DiseaseDetector() {
               className="disease-severity-badge"
               style={{ background: severityColor[result.severity] || "#888" }}
             >
-              {result.severity === "None" ? 
-                <span className="flex-center-row"><CheckCircle2 size={14} style={{ marginRight: 4 }} /> Healthy</span> : 
-                <span className="flex-center-row"><AlertTriangle size={14} style={{ marginRight: 4 }} /> Severity: {result.severity}</span>
+              {result.severity === "None" ?
+                <span className="flex-center-row"><CheckCircle2 size={14} style={{ marginRight: 4 }} /> {t('sections.disease.results.healthy')}</span> :
+                <span className="flex-center-row"><AlertTriangle size={14} style={{ marginRight: 4 }} /> {t('sections.disease.results.severity', { level: result.severity })}</span>
               }
             </div>
-            <span className="confidence-tag">{Math.round(result.confidence * 100)}% confidence</span>
+            <span className="confidence-tag">{t('common.confidence', { percent: Math.round(result.confidence * 100) })}</span>
+            <div style={{ marginLeft: '1rem' }}>
+              <SpeechButton
+                text={`${result.disease_detected}. ${t('sections.disease.results.severity', { level: result.severity })}. ${t('sections.disease.results.treatment')}: ${result.recommendation}. ${t('sections.disease.results.prevention')}: ${result.prevention}`}
+                lang={i18n.language.split("-")[0]}
+              />
+            </div>
           </div>
           <h3 className="disease-name">{result.disease_detected}</h3>
           <div className="disease-sections">
             <div className="disease-block">
-              <h4><Pill size={14} className="inline-icon-sm" /> Treatment</h4>
+              <h4><Pill size={14} className="inline-icon-sm" /> {t('sections.disease.results.treatment')}</h4>
               <p>{result.recommendation}</p>
             </div>
             <div className="disease-block">
-              <h4><ShieldCheck size={14} className="inline-icon-sm" /> Prevention</h4>
+              <h4><ShieldCheck size={14} className="inline-icon-sm" /> {t('sections.disease.results.prevention')}</h4>
               <p>{result.prevention}</p>
             </div>
           </div>
-          <p className="analysis-method">Analysis: {result.analysis_method}</p>
+          <p className="analysis-method">{t('sections.disease.results.analysis_method', { method: result.analysis_method })}</p>
         </Card>
       )}
+
     </section>
   );
 }
 
 // ── App Shell ──────────────────────────────────────────────────────────────────
 const TABS = [
-  { id: "growth", label: "Growth Plan", icon: Sprout },
-  { id: "advisory", label: "Daily Advisory", icon: LineChart },
-  { id: "disease", label: "Disease Detect", icon: Microscope },
+  { id: "growth", label: "tabs.growth", icon: Sprout },
+  { id: "advisory", label: "tabs.advisory", icon: LineChart },
+  { id: "disease", label: "tabs.disease", icon: Microscope },
 ];
 
 export default function App() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState("growth");
 
   return (
@@ -492,27 +528,30 @@ export default function App() {
           <div className="brand">
             <Leaf className="brand-icon" strokeWidth={2} />
             <div>
-              <h1>KrishiAI</h1>
-              <span className="brand-tagline">Intelligent Crop Advisory Platform</span>
+              <h1>{t('app_title')}</h1>
+              <span className="brand-tagline">{t('app_tagline')}</span>
             </div>
           </div>
-          <div className="header-badge">
-            <span className="dot-live" />
-            AI Models Active
+          <div className="header-right">
+            <LanguageSwitcher />
+            <div className="header-badge">
+              <span className="dot-live" />
+              {t('ai_active')}
+            </div>
           </div>
         </div>
       </header>
 
       {/* Nav */}
       <nav className="tab-nav">
-        {TABS.map(t => (
+        {TABS.map(tabItem => (
           <button
-            key={t.id}
-            className={cn("tab-btn", tab === t.id && "active")}
-            onClick={() => setTab(t.id)}
+            key={tabItem.id}
+            className={cn("tab-btn", tab === tabItem.id && "active")}
+            onClick={() => setTab(tabItem.id)}
           >
-            <t.icon size={18} />
-            <span>{t.label}</span>
+            <tabItem.icon size={18} />
+            <span>{t(tabItem.label)}</span>
           </button>
         ))}
       </nav>
@@ -526,7 +565,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="app-footer">
-        <p>KrishiAI MVP · Region-specific crop intelligence for Indian farmers · Built with FastAPI + React</p>
+        <p>{t('footer')}</p>
       </footer>
 
       <style>{`
@@ -586,6 +625,41 @@ export default function App() {
           justify-content: space-between;
           padding: 1rem 0;
         }
+        .header-right {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+        }
+        .language-switcher {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: rgba(255, 255, 255, 0.1);
+          padding: 0.25rem 0.5rem;
+          border-radius: 8px;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .lang-icon { color: var(--text-secondary); opacity: 0.7; }
+        .lang-buttons { 
+          display: flex; 
+          align-items: center; 
+          gap: 0.25rem; 
+          font-size: 0.8rem;
+          font-weight: 600;
+        }
+        .lang-btn {
+          border: none;
+          background: none;
+          color: var(--text-secondary);
+          opacity: 0.5;
+          cursor: pointer;
+          padding: 2px 4px;
+          transition: all 0.2s;
+        }
+        .lang-btn:hover { opacity: 0.8; }
+        .lang-btn.active { opacity: 1; color: var(--terracotta); border-bottom: 2px solid var(--terracotta); }
+        .divider { color: var(--border); opacity: 0.5; }
+        
         .brand {
           display: flex;
           align-items: center;
@@ -716,7 +790,13 @@ export default function App() {
           border: 1.5px solid var(--border);
           box-shadow: var(--shadow);
         }
-        .submit-col { display: flex; align-items: flex-end; }
+        .submit-col { 
+          display: flex; 
+          align-items: center; 
+          justify-content: center;
+          grid-column: 1 / -1;
+          margin-top: 1rem;
+        }
         .field {
           display: flex;
           flex-direction: column;
