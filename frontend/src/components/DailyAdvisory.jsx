@@ -18,8 +18,18 @@ import {
 import { useTranslation } from "react-i18next";
 import { Card, InfoBanner } from "./ui";
 import SpeechButton from "./SpeechButton";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { cn as clsx } from "@/lib/utils";
 
-const API = "http://localhost:8000";
+const API = import.meta.env.VITE_API_URL;
 const OPEN_METEO_BASE = "https://api.open-meteo.com/v1";
 
 const CROP_STAGES = [
@@ -57,6 +67,7 @@ export default function DailyAdvisory({ weatherData }) {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [stageOpen, setStageOpen] = useState(false);
 
   // Auto-fill weather & soil fields
   useEffect(() => {
@@ -172,40 +183,42 @@ export default function DailyAdvisory({ weatherData }) {
         ].map(([key, label, placeholder, IconComp]) => {
           const fieldIsAuto = isAuto && autoFields.has(key);
           return (
-            <label className={`field ${fieldIsAuto ? "field-auto" : ""}`} key={key}>
+            <div className={`field ${fieldIsAuto ? "field-auto" : ""}`} key={key}>
               <span>
                 {label}
-                {fieldIsAuto && <span className="auto-chip">{t('sections.advisory.hints.auto')}</span>}
+                {fieldIsAuto && <p className="auto-chip">{t('sections.advisory.hints.auto')}</p>}
               </span>
-              <div className="input-icon-wrap">
-                {IconComp && <IconComp size={16} className="field-icon" />}
-                <input
+              <div className="relative">
+                <Input
                   type="number"
-                  placeholder={fieldIsAuto ? "" : placeholder}
                   value={form[key]}
                   onChange={(e) => set(key, e.target.value)}
                   readOnly={fieldIsAuto}
-                  className={fieldIsAuto ? "input-readonly" : ""}
+                  className={clsx(fieldIsAuto && "bg-muted")}
+                  min="0"
                   required
                 />
               </div>
-            </label>
+            </div>
           );
         })}
 
-        <label className="field">
+       
+        <div className="field">
           <span>{t("sections.advisory.form.current_crop_stage")}</span>
-          <select
-            value={form.crop_stage}
-            onChange={(e) => set("crop_stage", e.target.value)}
-          >
-            {CROP_STAGES.map((s) => (
-              <option key={s} value={s}>
-                {t(`stages.${s}`) || s}
-              </option>
-            ))}
-          </select>
-        </label>
+          <Select value={form.crop_stage} onValueChange={(val) => set("crop_stage", val)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={t("sections.advisory.form.current_crop_stage")} />
+            </SelectTrigger>
+            <SelectContent>
+              {CROP_STAGES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {t(`stages.${s}`) || s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="field submit-col">
           <button type="submit" className="btn btn-primary" disabled={loading}>

@@ -52,32 +52,32 @@ RISK_ALERTS = {
 
 ADVISORY_MESSAGES = {
     "en": {
-        "urgent_irrigation": "⚠️ URGENT: Soil moisture critically low ({soil_moisture}%). Irrigate within 12 hours.",
-        "irrigation_needed": "💧 Irrigation recommended within 24 hours. Current soil moisture: {soil_moisture}%.",
-        "irrigation_ok": "✅ Soil moisture adequate ({soil_moisture}%). No irrigation needed today.",
+        "urgent_irrigation": "URGENT: Soil moisture critically low ({soil_moisture}%). Irrigate within 12 hours.",
+        "irrigation_needed": "Irrigation recommended within 24 hours. Current soil moisture: {soil_moisture}%.",
+        "irrigation_ok": "Soil moisture adequate ({soil_moisture}%). No irrigation needed today.",
         "fert_tillering": "Apply 25 kg urea/acre as top dressing.",
         "fert_vegetative": "Apply NPK (20-20-0) at 50 kg/acre.",
         "fert_jointing": "Apply 20 kg potassium chloride/acre.",
         "fert_flowering": "Foliar spray of 2% KNO₃ recommended.",
         "fert_default": "Apply balanced NPK as per soil test recommendation.",
-        "fert_required_prefix": "🌱 Fertilizer required: ",
-        "fert_not_needed": "🌿 No additional fertilization needed today.",
-        "heat_alert": "🌡️ Heat stress alert: Consider irrigation during early morning hours.",
-        "humidity_alert": "🍄 High humidity + temperature: Monitor for fungal diseases."
+        "fert_required_prefix": "Fertilizer required: ",
+        "fert_not_needed": "No additional fertilization needed today.",
+        "heat_alert": "Heat stress alert: Consider irrigation during early morning hours.",
+        "humidity_alert": "High humidity + temperature: Monitor for fungal diseases."
     },
     "hi": {
-        "urgent_irrigation": "⚠️ जरूरी: मिट्टी की नमी गंभीर रूप से कम ({soil_moisture}%)। 12 घंटे के भीतर सिंचाई करें।",
-        "irrigation_needed": "💧 24 घंटे के भीतर सिंचाई की सिफारिश। वर्तमान मिट्टी की नमी: {soil_moisture}%।",
-        "irrigation_ok": "✅ मिट्टी की नमी पर्याप्त ({soil_moisture}%)। आज सिंचाई की आवश्यकता नहीं है।",
+        "urgent_irrigation": "जरूरी: मिट्टी की नमी गंभीर रूप से कम ({soil_moisture}%)। 12 घंटे के भीतर सिंचाई करें।",
+        "irrigation_needed": "24 घंटे के भीतर सिंचाई की सिफारिश। वर्तमान मिट्टी की नमी: {soil_moisture}%।",
+        "irrigation_ok": "मिट्टी की नमी पर्याप्त ({soil_moisture}%)। आज सिंचाई की आवश्यकता नहीं है।",
         "fert_tillering": "टॉप ड्रेसिंग के रूप में 25 किलोग्राम यूरिया/एकड़ डालें।",
         "fert_vegetative": "50 किलोग्राम/एकड़ की दर से एनपीके (20-20-0) डालें।",
         "fert_jointing": "20 किलोग्राम पोटेशियम क्लोराइड/एकड़ डालें।",
         "fert_flowering": "2% KNO₃ के पर्णीय छिड़काव की सिफारिश की जाती है।",
         "fert_default": "मृदा परीक्षण सिफारिश के अनुसार संतुलित एनपीके डालें।",
-        "fert_required_prefix": "🌱 उर्वरक आवश्यक: ",
-        "fert_not_needed": "🌿 आज किसी अतिरिक्त उर्वरक की आवश्यकता नहीं है।",
-        "heat_alert": "🌡️ गर्मी तनाव चेतावनी: सुबह जल्दी सिंचाई पर विचार करें।",
-        "humidity_alert": "🍄 उच्च आर्द्रता + तापमान: फंगल रोगों के लिए निगरानी करें।"
+        "fert_required_prefix": "उर्वरक आवश्यक: ",
+        "fert_not_needed": "आज किसी अतिरिक्त उर्वरक की आवश्यकता नहीं है।",
+        "heat_alert": "गर्मी तनाव चेतावनी: सुबह जल्दी सिंचाई पर विचार करें।",
+        "humidity_alert": "उच्च आर्द्रता + तापमान: फंगल रोगों के लिए निगरानी करें।"
     }
 }
 

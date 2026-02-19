@@ -3,6 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 import uvicorn
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from models.growth_model import get_growth_plan
 from models.advisory_model import train_advisory_models, get_daily_advisory
@@ -14,9 +18,11 @@ app = FastAPI(
     version="1.0.0",
 )
 
+origins = os.getenv("CORS_ORIGINS", "*").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

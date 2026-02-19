@@ -3,7 +3,7 @@ import {
   Sprout,
   Droplets,
   ThermometerSun,
-  Calendar,
+  Calendar as CalendarIcon,
   AlertTriangle,
   Zap,
   Sun,
@@ -13,13 +13,28 @@ import {
   BarChart3,
   Cpu,
   ArrowRight,
+  ChevronDownIcon,
+  Check,
 } from "lucide-react";
+import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { Card, Stat, SoilGauge, InfoBanner } from "./ui";
 import SpeechButton from "./SpeechButton";
 
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { cn as clsx } from "@/lib/utils";
+
 // ── API helpers ───────────────────────────────────────────────────
-const API = "http://localhost:8000";
+const API = import.meta.env.VITE_API_URL;
 const OPEN_METEO_BASE = "https://api.open-meteo.com/v1";
 const OPEN_METEO_ARCHIVE = "https://archive-api.open-meteo.com/v1/archive";
 const CROP_BASE_TEMPS = { wheat: 5, rice: 10, jowar: 10, maize: 10 };
@@ -96,11 +111,16 @@ export default function GrowthPlanner({ weatherData }) {
   const { t, i18n } = useTranslation();
   const [cropType, setCropType] = useState("wheat");
   const [sowingDate, setSowingDate] = useState("");
+  const [sowingDateObj, setSowingDateObj] = useState(null);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
   const [result, setResult] = useState(null);
   const [openMeteoData, setOpenMeteoData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetchPhase, setFetchPhase] = useState("");
   const [error, setError] = useState("");
+
+  const CROPS = ["wheat", "rice", "jowar", "maize"];
 
   const hasLocation = !!(weatherData?.lat && weatherData?.lon);
 
@@ -204,30 +224,51 @@ export default function GrowthPlanner({ weatherData }) {
 
       {/* Minimal 2-field form */}
       <form onSubmit={submit} className="growth-mini-form">
-        <label className="field">
+        <div className="field">
           <span>{t("sections.growth.form.crop_type")}</span>
-          <select value={cropType} onChange={(e) => setCropType(e.target.value)}>
-            {["wheat", "rice", "jowar", "maize"].map((c) => (
-              <option key={c} value={c}>
-                {t(`crops.${c}`)}
-              </option>
-            ))}
-          </select>
-        </label>
+          <Select value={cropType} onValueChange={setCropType}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={t("sections.growth.form.crop_type")} />
+            </SelectTrigger>
+            <SelectContent>
+              {CROPS.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {t(`crops.${c}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <label className="field">
+        <div className="field">
           <span>{t("sections.growth.form.sowing_date")}</span>
-          <div className="input-icon-wrap">
-            <Calendar size={16} className="field-icon" />
-            <input
-              type="date"
-              value={sowingDate}
-              onChange={(e) => setSowingDate(e.target.value)}
-              max={new Date().toISOString().split("T")[0]}
-              required
-            />
-          </div>
-        </label>
+          <Popover open={dateOpen} onOpenChange={setDateOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={clsx("w-full justify-between text-left font-normal px-4 h-12 text-base", !sowingDateObj && "text-muted-foreground")}
+              >
+                {sowingDateObj ? format(sowingDateObj, "PPP") : <span>dd/mm/yyyy</span>}
+                <ChevronDownIcon className="ml-2 h-4 w-4 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={sowingDateObj}
+                onSelect={(date) => {
+                  setSowingDateObj(date);
+                  if (date) {
+                    setSowingDate(format(date, "yyyy-MM-dd"));
+                  }
+                  setDateOpen(false);
+                }}
+                disabled={(date) => date > new Date()}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
 
         <div className="field submit-col">
           <button

@@ -75,7 +75,7 @@ export default function App() {
       </nav>
 
       {/* Main — all panels always mounted, hiddenattribute for inactive */}
-      <main className="main-content h-full">
+      <main className="main-content">
         <div className="tab-panel" hidden={tab !== "growth"}>
           <GrowthPlanner weatherData={weatherData} />
         </div>

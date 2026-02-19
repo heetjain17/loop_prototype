@@ -271,19 +271,19 @@ export default function WeatherAdvisory({ onWeatherFetched, weather, setWeather,
                         </div>
 
                         <div className="weather-stats">
-                            <div className="stat-box">
+                            <div className="stat-box flex flex-col items-center justify-center">
                                 <Droplets className="stat-icon mx-auto" size={20} />
-                                <span className="stat-label">{t('sections.weather.humidity')}</span>
+                                <span className="">{t('sections.weather.humidity')}</span>
                                 <span className="stat-val">{weather.main.humidity}%</span>
                             </div>
-                            <div className="stat-box">
+                            <div className="stat-box flex flex-col items-center justify-center">
                                 <Wind className="stat-icon mx-auto" size={20} />
-                                <span className="stat-label">{t('sections.weather.wind')}</span>
+                                <span className="">{t('sections.weather.wind')}</span>
                                 <span className="stat-val">{weather.wind.speed} m/s</span>
                             </div>
-                            <div className="stat-box">
+                            <div className="stat-box flex flex-col items-center justify-center">
                                 <CloudRain className="stat-icon mx-auto" size={20} />
-                                <span className="stat-label">{t('sections.weather.rain')}</span>
+                                <span className="">{t('sections.weather.rain')}</span>
                                 <span className="stat-val">{weather.rain ? (weather.rain['1h'] || 0) + 'mm' : '0%'}</span>
                             </div>
                         </div>
@@ -322,7 +322,7 @@ export default function WeatherAdvisory({ onWeatherFetched, weather, setWeather,
                     <h3 style={{ marginBottom: '1rem', color: 'var(--earth-800)', fontFamily: 'Playfair Display, serif' }}>{t('sections.weather.forecast')}</h3>
                     <div className="forecast-scroll">
                         {forecast && forecast.map((day, idx) => (
-                            <div key={idx} className="forecast-card">
+                            <div key={idx} className="forecast-card flex flex-col items-center justify-center">
                                 <span className="fc-day">{getDayName(day.dt_txt)}</span>
                                 <div className="fc-icon">
                                     {getWeatherIcon(day.weather[0].id)}

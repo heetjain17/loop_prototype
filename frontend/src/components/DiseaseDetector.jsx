@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { Card, Spinner } from "./ui";
 import SpeechButton from "./SpeechButton";
 
-const API = "http://localhost:8000";
+const API = import.meta.env.VITE_API_URL;
 
 const severityColor = {
   None: "#4A9063",
