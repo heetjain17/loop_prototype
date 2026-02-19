@@ -1,12 +1,47 @@
-/* Existing styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+/* ── Design Tokens ─────────────────────────────────────────────── */
 :root {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  line-height: 1.5;
+  /* Earth palette */
+  --earth-900: #1C1208;
+  --earth-800: #2E1E0A;
+  --earth-700: #4A3215;
+  --earth-600: #6B4B22;
+
+  /* Accent */
+  --terracotta: #C96B2F;
+  --terracotta-light: #E8A045;
+
+  /* Greens */
+  --green-900: #1A3020;
+  --green-700: #2D6B42;
+  --green-500: #4A9063;
+  --green-300: #7DAF5C;
+
+  /* Neutrals */
+  --cream: #F7F0E3;
+  --cream-dark: #EDE3CE;
+  --parchment: #FAF5EC;
+
+  /* Text */
+  --text-primary: #1C1208;
+  --text-secondary: #5A4A30;
+  --text-muted: #8A7A60;
+
+  /* Borders & Shadows */
+  --border: #D4C5A0;
+  --shadow: 0 4px 20px rgba(28, 18, 8, 0.10);
+  --shadow-lg: 0 8px 40px rgba(28, 18, 8, 0.16);
+
+  /* Typography */
+  font-family: 'Inter', 'DM Sans', system-ui, sans-serif;
+  line-height: 1.6;
   font-weight: 400;
 
   color-scheme: light;
-  color: #1C1208;
-  background-color: #FAF5EC;
+  color: var(--text-primary);
+  background-color: var(--parchment);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -14,12 +49,24 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  font-family: 'Inter', 'DM Sans', system-ui, sans-serif;
+  background: var(--parchment);
+  color: var(--text-primary);
 }
 
+/* ── Submit column helper ──────────────────────────────────────── */
 .submit-col {
   display: flex;
   align-items: center;
@@ -28,7 +75,7 @@ body {
   margin-top: 1rem;
 }
 
-/* Speech Button Styles */
+/* ── Speech Button ─────────────────────────────────────────────── */
 .speech-btn {
   display: inline-flex;
   align-items: center;

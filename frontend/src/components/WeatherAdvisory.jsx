@@ -22,7 +22,7 @@ const API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 const WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
 
 export default function WeatherAdvisory({ onWeatherFetched, weather, setWeather, forecast, setForecast, location, setLocation }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -138,12 +138,12 @@ export default function WeatherAdvisory({ onWeatherFetched, weather, setWeather,
                     fetchWeatherData(position.coords.latitude, position.coords.longitude);
                 },
                 (err) => {
-                    setError("Location access denied.");
+                    setError(t('sections.weather.errors.location_denied'));
                     setLoading(false);
                 }
             );
         } else {
-            setError("Geolocation not supported by this browser.");
+            setError(t('sections.weather.errors.geo_unsupported'));
         }
     };
 
@@ -159,13 +159,13 @@ export default function WeatherAdvisory({ onWeatherFetched, weather, setWeather,
         if (rainSoon) {
             advisories.push({
                 type: "warning",
-                text: "Rain expected in next 48 hours. Delay spraying pesticides/fertilizers.",
+                text: t('sections.weather.advisories.rain_soon'),
                 icon: Umbrella
             });
         } else if (!rainExpected) {
             advisories.push({
                 type: "success",
-                text: "No rain forecast. Suitable for irrigation and spraying.",
+                text: t('sections.weather.advisories.no_rain'),
                 icon: Sun
             });
         }
@@ -174,7 +174,7 @@ export default function WeatherAdvisory({ onWeatherFetched, weather, setWeather,
         if (current.wind.speed > 5) { // roughly > 18 km/h
             advisories.push({
                 type: "warning",
-                text: `High wind speed combine (${current.wind.speed} m/s). Avoid spraying to prevent drift.`,
+                text: t('sections.weather.advisories.high_wind', { speed: current.wind.speed }),
                 icon: Wind
             });
         }
@@ -183,7 +183,7 @@ export default function WeatherAdvisory({ onWeatherFetched, weather, setWeather,
         if (current.main.humidity > 80) {
             advisories.push({
                 type: "alert",
-                text: "High humidity (>80%). Increased risk of fungal diseases. Monitor crops closely.",
+                text: t('sections.weather.advisories.high_humidity'),
                 icon: Droplets
             });
         }
@@ -192,7 +192,7 @@ export default function WeatherAdvisory({ onWeatherFetched, weather, setWeather,
         if (current.main.temp > 35) {
             advisories.push({
                 type: "warning",
-                text: "Heat stress likelihood. Ensure adequate irrigation.",
+                text: t('sections.weather.advisories.heat_stress'),
                 icon: ThermometerSun
             });
         }
@@ -215,7 +215,8 @@ export default function WeatherAdvisory({ onWeatherFetched, weather, setWeather,
 
     const getDayName = (dateStr) => {
         const date = new Date(dateStr);
-        return date.toLocaleDateString('en-US', { weekday: 'short' });
+        const locale = i18n.language === 'hi' ? 'hi-IN' : 'en-US';
+        return date.toLocaleDateString(locale, { weekday: 'short' });
     };
 
     const advisories = getAdvisories(weather, forecast);
@@ -236,7 +237,7 @@ export default function WeatherAdvisory({ onWeatherFetched, weather, setWeather,
                     <input
                         type="text"
                         className="search-input"
-                        placeholder="City name or Pincode (e.g. Nashik, 411001)"
+                        placeholder={t('sections.weather.search_placeholder')}
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
                     />
@@ -289,7 +290,7 @@ export default function WeatherAdvisory({ onWeatherFetched, weather, setWeather,
                     </>
                 ) : (
                     <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-                        Enter location or enable GPS to see weather.
+                        {t('sections.weather.empty_state')}
                     </div>
                 )}
             </form>
@@ -313,7 +314,7 @@ export default function WeatherAdvisory({ onWeatherFetched, weather, setWeather,
                                 ))}
                             </ul>
                         ) : (
-                            <p className="text-sm text-gray-600">Conditions are stable. Proceed with standard farming activities.</p>
+                            <p className="text-sm text-gray-600">{t('sections.weather.advisories.stable')}</p>
                         )}
                     </div>
 

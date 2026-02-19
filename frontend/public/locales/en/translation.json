@@ -32,14 +32,14 @@
     "sections": {
         "growth": {
             "title": "Crop Growth Planner",
-            "subtitle": "GDD-based stage estimation & seasonal roadmap",
+            "subtitle": "Real GDD accumulation · Live soil data · 16-day forecast",
             "form": {
                 "crop_type": "Crop Type",
                 "sowing_date": "Sowing Date",
                 "district": "District",
                 "max_temp": "Max Temp (°C)",
                 "min_temp": "Min Temp (°C)",
-                "submit": "Generate Year Plan"
+                "submit": "Analyse Crop"
             },
             "results": {
                 "current_stage": "Current Stage",
@@ -52,6 +52,28 @@
                 "risk_alert": "Risk Alert",
                 "season_timeline": "Season Timeline — {{crop}}",
                 "timeline_days": "Day {{start}}–{{end}}"
+            },
+            "hints": {
+                "location": "Location",
+                "no_location": "Visit the Weather tab and search your city or use Locate Me — location is required to fetch soil & GDD data automatically.",
+                "set_location": "Set location in Weather tab first",
+                "avg_high": "Season Avg High",
+                "avg_low": "Season Avg Low",
+                "gdd_source": "GDD computed from {{days}} days of actual historical temperatures via Open-Meteo",
+                "live_soil": "Live Soil Moisture",
+                "soil_explain": "Soil moisture levels help determine when to irrigate. Values below 20% indicate dry soil needing water.",
+                "soil_temp": "Soil Temp @ 6cm",
+                "data_source_live": "Live data · Open-Meteo",
+                "forecast_title": "16-Day Temperature Outlook",
+                "data_source_forecast": "Open-Meteo · 16-day forecast",
+                "irrigation_explain": "Based on soil moisture, forecast rainfall, and current crop stage requirements.",
+                "fetch_hist": "Fetching historical temperatures since sowing...",
+                "fetch_soil": "Fetching live soil moisture & 16-day forecast...",
+                "fetch_analyse": "Analysing crop stage & recommendations...",
+                "gdd_early": "Early growth phase — crop is still establishing roots.",
+                "gdd_active": "Active vegetative growth — nutrient uptake is increasing.",
+                "gdd_mid": "Mid-season — critical period for water and fertilizer.",
+                "gdd_late": "Late season — approaching maturity, reduce inputs."
             }
         },
         "advisory": {
@@ -72,6 +94,17 @@
                 "required": "REQUIRED",
                 "not_needed": "NOT NEEDED",
                 "full_recommendation": "Full Recommendation"
+            },
+            "hints": {
+                "enter_manual": "Enter Manually",
+                "use_live": "Use Live Weather",
+                "using_live": "Using live weather from {{city}} — {{temp}}°C, {{humidity}}% humidity",
+                "manual_mode": "Manual data entry mode",
+                "no_weather": "Visit the Weather tab to auto-fill weather conditions from live data.",
+                "auto": "AUTO",
+                "conf_high": "High confidence — strongly recommended.",
+                "conf_mod": "Moderate confidence — consider conditions.",
+                "conf_low": "Low confidence — use your best judgment."
             }
         },
         "disease": {
@@ -90,12 +123,20 @@
                 "treatment": "Treatment",
                 "prevention": "Prevention",
                 "analysis_method": "Analysis: {{method}}"
+            },
+            "hints": {
+                "severity_none": "No disease detected — your crop appears healthy.",
+                "severity_low": "Early signs of infection. Treat now to prevent spread.",
+                "severity_moderate": "Visible infection that needs prompt treatment to protect yield.",
+                "severity_mod_high": "Significant infection. Immediate action recommended.",
+                "severity_high": "Severe infection. Urgent treatment required to save the crop.",
+                "severity_fallback": "Review the diagnosis and consult an expert if needed."
             }
         },
         "weather": {
             "title": "Local Weather & Farming Advisory",
             "subtitle": "Real-time forecast & agricultural insights",
-            "search_placeholder": "Enter Village/City/Pincode",
+            "search_placeholder": "City name or Pincode (e.g. Nashik, 411001)",
             "locate_me": "Use My Location",
             "current": "Current Weather",
             "forecast": "5-Day Forecast",
@@ -104,7 +145,20 @@
             "humidity": "Humidity",
             "wind": "Wind",
             "rain": "Rain Chance",
-            "temp": "Temp"
+            "temp": "Temp",
+            "empty_state": "Enter location or enable GPS to see weather.",
+            "advisories": {
+                "rain_soon": "Rain expected in next 48 hours. Delay spraying pesticides/fertilizers.",
+                "no_rain": "No rain forecast. Suitable for irrigation and spraying.",
+                "high_wind": "High wind speed ({{speed}} m/s). Avoid spraying to prevent drift.",
+                "high_humidity": "High humidity (>80%). Increased risk of fungal diseases. Monitor crops closely.",
+                "heat_stress": "Heat stress likelihood. Ensure adequate irrigation.",
+                "stable": "Conditions are stable. Proceed with standard farming activities."
+            },
+            "errors": {
+                "location_denied": "Location access denied.",
+                "geo_unsupported": "Geolocation not supported by this browser."
+            }
         }
     },
     "footer": "KrishiAI MVP · Region-specific crop intelligence for Indian farmers · Built with FastAPI + React"
