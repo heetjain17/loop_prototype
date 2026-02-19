@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
     CloudRain,
     Sun,
@@ -21,43 +21,11 @@ const API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 
 const WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
 
-export default function WeatherAdvisory() {
+export default function WeatherAdvisory({ onWeatherFetched, weather, setWeather, forecast, setForecast, location, setLocation }) {
     const { t } = useTranslation();
 
-    const [location, setLocation] = useState("");
-    const [weather, setWeather] = useState(null);
-    const [forecast, setForecast] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [coords, setCoords] = useState(null);
-
-    // Auto-detect location on mount
-    useEffect(() => {
-        if (navigator.geolocation) {
-            setLoading(true);
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setCoords({
-                        lat: position.coords.latitude,
-                        lon: position.coords.longitude
-                    });
-                },
-                (err) => {
-                    console.error("Location permission denied or error:", err);
-                    // Fallback or just stop loading
-                    setLoading(false);
-                    // Could set a default location here if desired
-                }
-            );
-        }
-    }, []);
-
-    // Fetch whenever coords change
-    useEffect(() => {
-        if (coords) {
-            fetchWeatherData(coords.lat, coords.lon);
-        }
-    }, [coords]);
 
     const fetchWeatherData = async (lat, lon, query = null) => {
         if (!API_KEY || API_KEY === "YOUR_OPENWEATHER_API_KEY_HERE") {
@@ -103,6 +71,22 @@ export default function WeatherAdvisory() {
             setForecast(dailyForecast.slice(0, 5)); // Next 5 days
             setLocation(`${wData.name}, ${wData.sys.country}`); // Update displayed location
 
+            // Expose structured data to parent for auto-fill in other sections
+            if (onWeatherFetched) {
+                const rain1h = wData.rain ? (wData.rain['1h'] || 0) : 0;
+                onWeatherFetched({
+                    temp: Math.round(wData.main.temp),
+                    tmax: Math.round(wData.main.temp_max),
+                    tmin: Math.round(wData.main.temp_min),
+                    humidity: wData.main.humidity,
+                    rainfall_last_3_days: parseFloat((rain1h * 3).toFixed(1)),
+                    city: `${wData.name}, ${wData.sys.country}`,
+                    cityName: wData.name,
+                    lat: wData.coord.lat,
+                    lon: wData.coord.lon,
+                });
+            }
+
         } catch (err) {
             setError(err.message);
         } finally {
@@ -110,10 +94,39 @@ export default function WeatherAdvisory() {
         }
     };
 
-    const handleSearch = (e) => {
+    // Resolve Indian pincode → lat/lon using OWM Geocoding API
+    const resolvePincodeToCoords = async (pincode) => {
+        // Try India first (IN), then without country code as fallback
+        const geoUrl = `https://api.openweathermap.org/geo/1.0/zip?zip=${pincode},IN&appid=${API_KEY}`;
+        const res = await fetch(geoUrl);
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(`Pincode not found: ${err.message || res.statusText}`);
+        }
+        const data = await res.json();
+        return { lat: data.lat, lon: data.lon, name: data.name };
+    };
+
+    const handleSearch = async (e) => {
         e.preventDefault();
-        if (location.trim()) {
-            fetchWeatherData(null, null, location);
+        const query = location.trim();
+        if (!query) return;
+
+        // Detect if input is a numeric pincode (3–10 digits)
+        const isPincode = /^\d{3,10}$/.test(query);
+
+        if (isPincode) {
+            setLoading(true);
+            setError(null);
+            try {
+                const { lat, lon } = await resolvePincodeToCoords(query);
+                fetchWeatherData(lat, lon);
+            } catch (err) {
+                setError(err.message);
+                setLoading(false);
+            }
+        } else {
+            fetchWeatherData(null, null, query);
         }
     };
 
@@ -122,10 +135,7 @@ export default function WeatherAdvisory() {
             setLoading(true);
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    setCoords({
-                        lat: position.coords.latitude,
-                        lon: position.coords.longitude
-                    });
+                    fetchWeatherData(position.coords.latitude, position.coords.longitude);
                 },
                 (err) => {
                     setError("Location access denied.");
@@ -226,7 +236,7 @@ export default function WeatherAdvisory() {
                     <input
                         type="text"
                         className="search-input"
-                        placeholder={t('sections.weather.search_placeholder')}
+                        placeholder="City name or Pincode (e.g. Nashik, 411001)"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
                     />

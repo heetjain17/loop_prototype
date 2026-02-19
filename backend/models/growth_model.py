@@ -59,9 +59,10 @@ def calculate_gdd(tmax: float, tmin: float, base_temp: float) -> float:
 def get_growth_plan(
     crop_type: str,
     sowing_date: str,
-    district: str,
+    city: str,
     tmax: float,
     tmin: float,
+    accumulated_gdd: float = None,
     lang: str = "en",
 ) -> Dict[str, Any]:
     crop_type = crop_type.lower()
@@ -77,7 +78,9 @@ def get_growth_plan(
     days_since_sowing = (today - sow_dt).days
 
     daily_gdd = calculate_gdd(tmax, tmin, base_temp)
-    accumulated_gdd = max(0, daily_gdd * days_since_sowing)
+    # Use frontend-computed real historical GDD if provided, else estimate
+    if accumulated_gdd is None:
+        accumulated_gdd = max(0, daily_gdd * days_since_sowing)
 
     # Determine current stage
     current_stage = stages[-1]["name"]
@@ -122,7 +125,7 @@ def get_growth_plan(
 
     return {
         "crop_type": crop_type.capitalize(),
-        "district": district,
+        "city": city,
         "current_stage": current_stage,
         "days_since_sowing": max(0, days_since_sowing),
         "accumulated_gdd": round(accumulated_gdd, 1),

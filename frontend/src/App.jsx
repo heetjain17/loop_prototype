@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Sprout,
   LineChart,
@@ -17,7 +17,9 @@ import {
   FileImage,
   Upload,
   ArrowRight,
-  Leaf
+  Leaf,
+  Sun
+
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "./components/LanguageSwitcher";
@@ -56,57 +58,127 @@ function Spinner() {
 }
 
 // ── Section: Growth Plan ───────────────────────────────────────────────────────
-function GrowthPlanner() {
+// ── Open-Meteo helpers ────────────────────────────────────────────────────────
+const OPEN_METEO_BASE = "https://api.open-meteo.com/v1";
+const OPEN_METEO_ARCHIVE = "https://archive-api.open-meteo.com/v1/archive";
+
+async function fetchHistoricalGDD(lat, lon, sowingDate, baseTemp) {
+  // Use 2 days ago as end_date to stay within Open-Meteo archive availability (5-day lag)
+  const end = new Date();
+  end.setDate(end.getDate() - 2);
+  const endDate = end.toISOString().split("T")[0];
+  // Guard: sowing must be before endDate
+  if (sowingDate >= endDate) {
+    return { accumulated_gdd: 0, avg_tmax: 0, avg_tmin: 0, days: 0 };
+  }
+  const url = `${OPEN_METEO_ARCHIVE}?latitude=${lat}&longitude=${lon}` +
+    `&start_date=${sowingDate}&end_date=${endDate}` +
+    `&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(`Historical weather fetch failed (${res.status}): ${body.reason || body.error || "unknown error"}`);
+  }
+  const data = await res.json();
+  const tmaxArr = data.daily.temperature_2m_max;
+  const tminArr = data.daily.temperature_2m_min;
+  let accumulated = 0;
+  for (let i = 0; i < tmaxArr.length; i++) {
+    if (tmaxArr[i] != null && tminArr[i] != null) {
+      const avg = (tmaxArr[i] + tminArr[i]) / 2;
+      accumulated += Math.max(0, avg - baseTemp);
+    }
+  }
+  const days = tmaxArr.length;
+  const avgTmax = tmaxArr.reduce((a, b) => a + (b ?? 0), 0) / days;
+  const avgTmin = tminArr.reduce((a, b) => a + (b ?? 0), 0) / days;
+  return { accumulated_gdd: Math.round(accumulated * 10) / 10, avg_tmax: Math.round(avgTmax * 10) / 10, avg_tmin: Math.round(avgTmin * 10) / 10, days };
+}
+
+async function fetchOpenMeteoCurrent(lat, lon) {
+  const url = `${OPEN_METEO_BASE}/forecast?latitude=${lat}&longitude=${lon}` +
+    `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum` +
+    `&hourly=soil_moisture_0_to_1cm,soil_moisture_3_to_9cm,soil_moisture_9_to_27cm,soil_temperature_6cm` +
+    `&current=temperature_2m,relative_humidity_2m` +
+    `&forecast_days=16&timezone=auto`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Could not fetch forecast/soil data.");
+  return res.json();
+}
+
+// Base temperatures per crop (°C)
+const CROP_BASE_TEMPS = { wheat: 5, rice: 10, jowar: 10, maize: 10 };
+
+function GrowthPlanner({ weatherData }) {
   const { t, i18n } = useTranslation();
-  const [form, setForm] = useState({
-    crop_type: "wheat",
-    sowing_date: "",
-    district: "",
-    tmax: "",
-    tmin: "",
-  });
+  const [cropType, setCropType] = useState("wheat");
+  const [sowingDate, setSowingDate] = useState("");
   const [result, setResult] = useState(null);
+  const [openMeteoData, setOpenMeteoData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [fetchPhase, setFetchPhase] = useState("");
   const [error, setError] = useState("");
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const hasLocation = !!(weatherData?.lat && weatherData?.lon);
 
   async function submit(e) {
     e.preventDefault();
-    setError(""); setResult(null); setLoading(true);
+    setError(""); setResult(null); setOpenMeteoData(null); setLoading(true);
     try {
+      const lat = weatherData.lat;
+      const lon = weatherData.lon;
+      const baseTemp = CROP_BASE_TEMPS[cropType] ?? 10;
+
+      // Step 1: Historical GDD
+      setFetchPhase("📊 Fetching historical temperatures since sowing…");
+      const hist = await fetchHistoricalGDD(lat, lon, sowingDate, baseTemp);
+
+      // Step 2: Live soil & 16-day forecast (parallel)
+      setFetchPhase("🌱 Fetching live soil moisture & 16-day forecast…");
+      const omData = await fetchOpenMeteoCurrent(lat, lon);
+      setOpenMeteoData(omData);
+
+      // Step 3: Backend recommendations
+      setFetchPhase("🤖 Analysing crop stage & recommendations…");
       const lang = i18n.language.split("-")[0];
       const res = await fetch(`${API}/growth-plan?lang=${lang}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
-          tmax: parseFloat(form.tmax),
-          tmin: parseFloat(form.tmin),
+          crop_type: cropType,
+          sowing_date: sowingDate,
+          city: weatherData.cityName || weatherData.city || "Unknown",
+          tmax: hist.avg_tmax,
+          tmin: hist.avg_tmin,
+          accumulated_gdd: hist.accumulated_gdd,
+          lat, lon,
         }),
       });
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.detail || "Request failed");
-      }
-      setResult(await res.json());
+      if (!res.ok) { const d = await res.json(); throw new Error(d.detail || "Backend error"); }
+      const data = await res.json();
+      setResult({ ...data, hist });
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setLoading(false); setFetchPhase("");
     }
   }
 
   const stageColors = {
-    Germination: "#7DAF5C",
-    Vegetative: "#4A9063",
-    Tillering: "#3A7A52",
-    Jointing: "#2D6B42",
-    Tasseling: "#E8A045",
-    Silking: "#D4842A",
-    Flowering: "#C96B2F",
-    Maturity: "#A0522D",
+    Germination: "#7DAF5C", Vegetative: "#4A9063", Tillering: "#3A7A52",
+    Jointing: "#2D6B42", Tasseling: "#E8A045", Silking: "#D4842A",
+    Flowering: "#C96B2F", Maturity: "#A0522D",
   };
+
+  // Extract soil moisture (use index 6 = ~6am of today, nearest reading)
+  const soilMoisture = openMeteoData ? {
+    shallow: openMeteoData.hourly.soil_moisture_0_to_1cm?.[6] ?? null,
+    mid: openMeteoData.hourly.soil_moisture_3_to_9cm?.[6] ?? null,
+    deep: openMeteoData.hourly.soil_moisture_9_to_27cm?.[6] ?? null,
+    soilTemp: openMeteoData.hourly.soil_temperature_6cm?.[6] ?? null,
+  } : null;
+
+  const forecast16 = openMeteoData?.daily ?? null;
 
   return (
     <section className="feature-section">
@@ -114,14 +186,34 @@ function GrowthPlanner() {
         <Sprout className="section-icon" strokeWidth={1.5} />
         <div>
           <h2>{t('sections.growth.title')}</h2>
-          <p className="section-sub">{t('sections.growth.subtitle')}</p>
+          <p className="section-sub">Real GDD accumulation · Live soil data · 16-day forecast</p>
         </div>
       </div>
 
-      <form onSubmit={submit} className="input-grid">
+      {/* Location banner */}
+      {hasLocation ? (
+        <div className="weather-source-banner banner-auto">
+          <span className="banner-icon">📍</span>
+          <span className="banner-text">
+            Location: <strong>{weatherData.cityName || weatherData.city}</strong>
+            &nbsp;·&nbsp;🌡 {weatherData.temp}°C
+            &nbsp;·&nbsp;💧 {weatherData.humidity}%
+          </span>
+        </div>
+      ) : (
+        <div className="weather-source-banner banner-hint">
+          <span className="banner-icon">💡</span>
+          <span className="banner-text">
+            Visit the <strong>Weather tab</strong> and search your city or use 📍 Locate Me — location is required to fetch soil & GDD data automatically.
+          </span>
+        </div>
+      )}
+
+      {/* Minimal 2-field form */}
+      <form onSubmit={submit} className="growth-mini-form">
         <label className="field">
           <span>{t('sections.growth.form.crop_type')}</span>
-          <select value={form.crop_type} onChange={e => set("crop_type", e.target.value)}>
+          <select value={cropType} onChange={e => setCropType(e.target.value)}>
             {["wheat", "rice", "jowar", "maize"].map(c => (
               <option key={c} value={c}>{t(`crops.${c}`)}</option>
             ))}
@@ -132,44 +224,25 @@ function GrowthPlanner() {
           <span>{t('sections.growth.form.sowing_date')}</span>
           <div className="input-icon-wrap">
             <Calendar size={16} className="field-icon" />
-            <input type="date" value={form.sowing_date} onChange={e => set("sowing_date", e.target.value)} required />
-          </div>
-        </label>
-
-        <label className="field">
-          <span>{t('sections.growth.form.district')}</span>
-          <input type="text" placeholder="e.g. Nashik" value={form.district} onChange={e => set("district", e.target.value)} required />
-        </label>
-
-        <label className="field">
-          <span>{t('sections.growth.form.max_temp')}</span>
-          <div className="input-icon-wrap">
-            <ThermometerSun size={16} className="field-icon" />
-            <input type="number" placeholder="34" value={form.tmax} onChange={e => set("tmax", e.target.value)} required />
-          </div>
-        </label>
-
-        <label className="field">
-          <span>{t('sections.growth.form.min_temp')}</span>
-          <div className="input-icon-wrap">
-            <ThermometerSun size={16} className="field-icon" />
-            <input type="number" placeholder="18" value={form.tmin} onChange={e => set("tmin", e.target.value)} required />
-          </div>
-        </label>
-
-        <label className="field">
-          <span>Min Temp (°C)</span>
-          <div className="input-icon-wrap">
-            <ThermometerSun size={16} className="field-icon" />
-            <input type="number" placeholder="18" value={form.tmin} onChange={e => set("tmin", e.target.value)} required />
+            <input
+              type="date"
+              value={sowingDate}
+              onChange={e => setSowingDate(e.target.value)}
+              max={new Date().toISOString().split("T")[0]}
+              required
+            />
           </div>
         </label>
 
         <div className="field submit-col">
-          <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? t('common.generating') : t('sections.growth.form.submit')}
-            {!loading && <ArrowRight size={16} style={{ marginLeft: 8 }} />}
+          <button type="submit" className="btn btn-primary" disabled={loading || !hasLocation}>
+            {loading ? (
+              <span className="loading-phase">{fetchPhase || "Loading…"}</span>
+            ) : (
+              <><Sprout size={16} style={{ marginRight: 8 }} />Analyse Crop</>
+            )}
           </button>
+          {!hasLocation && <p className="field-hint">⚠ Set location in Weather tab first</p>}
         </div>
       </form>
 
@@ -177,23 +250,69 @@ function GrowthPlanner() {
 
       {result && (
         <div className="result-grid">
+
+          {/* Hero: Stage + Real GDD */}
           <Card className="result-hero">
             <div className="stage-badge-wrap">
-              <div
-                className="stage-pill"
-                style={{ background: stageColors[result.current_stage] || "#5A8A45" }}
-              >
+              <div className="stage-pill" style={{ background: stageColors[result.current_stage] || "#5A8A45" }}>
                 {t(`stages.${result.current_stage}`) || result.current_stage}
               </div>
-              <span className="stage-label">{t('sections.growth.results.current_stage')}</span>
+              <span className="stage-label">Current Stage</span>
             </div>
             <div className="stat-row">
-              <Stat label={t('sections.growth.results.days_since_sowing')} value={result.days_since_sowing} unit="days" />
-              <Stat label={t('sections.growth.results.accumulated_gdd')} value={result.accumulated_gdd} unit="°C-days" />
-              <Stat label={t('sections.growth.results.daily_gdd')} value={result.daily_gdd} unit="°C/day" />
+              <Stat label="Days Since Sowing" value={result.days_since_sowing} unit="days" />
+              <Stat label="Real Accumulated GDD" value={result.hist.accumulated_gdd} unit="°C·days" highlight />
+              <Stat label="Season Avg Tmax" value={result.hist.avg_tmax} unit="°C" />
+              <Stat label="Season Avg Tmin" value={result.hist.avg_tmin} unit="°C" />
             </div>
+            <p className="gdd-source-note">
+              📈 GDD computed from <strong>{result.hist.days}</strong> days of actual historical temperatures via Open-Meteo
+            </p>
           </Card>
 
+          {/* Soil Moisture Card */}
+          {soilMoisture && soilMoisture.shallow !== null && (
+            <Card className="soil-card">
+              <h3><Droplets size={18} className="inline-icon" /> Live Soil Moisture</h3>
+              <div className="soil-gauges">
+                <SoilGauge label="0–1 cm" value={soilMoisture.shallow} color="#43a89e" />
+                <SoilGauge label="3–9 cm" value={soilMoisture.mid} color="#2d7a70" />
+                <SoilGauge label="9–27 cm" value={soilMoisture.deep} color="#1a5c53" />
+              </div>
+              {soilMoisture.soilTemp !== null && (
+                <p className="soil-temp">🌡 Soil Temp @ 6cm: <strong>{soilMoisture.soilTemp.toFixed(1)}°C</strong></p>
+              )}
+              <p className="data-source-note">Live data · Open-Meteo</p>
+            </Card>
+          )}
+
+          {/* 16-day Forecast Strip */}
+          {forecast16 && (
+            <Card className="forecast-card">
+              <h3><Sun size={18} className="inline-icon" /> 16-Day Temperature Outlook</h3>
+              <div className="forecast-strip">
+                {forecast16.time?.slice(0, 16).map((date, i) => (
+                  <div key={date} className="forecast-day">
+                    <span className="fc-date">{new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                    <span className="fc-max">{Math.round(forecast16.temperature_2m_max?.[i])}°</span>
+                    <div className="fc-bar-wrap">
+                      <div className="fc-bar" style={{
+                        height: `${Math.min(100, ((forecast16.temperature_2m_max?.[i] ?? 20) / 45) * 100)}%`,
+                        background: (forecast16.temperature_2m_max?.[i] ?? 20) > 38 ? '#ef4444' : '#4ade80'
+                      }} />
+                    </div>
+                    <span className="fc-min">{Math.round(forecast16.temperature_2m_min?.[i])}°</span>
+                    {(forecast16.precipitation_sum?.[i] ?? 0) > 1 && (
+                      <span className="fc-rain">💧</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="data-source-note">Open-Meteo · 16-day forecast</p>
+            </Card>
+          )}
+
+          {/* Irrigation + Fertilizer */}
           <Card className="action-card">
             <h3><Droplets size={18} className="inline-icon" /> {t('sections.growth.results.irrigation')}</h3>
             <p className="action-value">{t('sections.growth.results.next_window', { days: result.next_irrigation_in_days })}</p>
@@ -204,18 +323,21 @@ function GrowthPlanner() {
             <p className="action-value">{result.fertilizer_recommendation}</p>
           </Card>
 
+          {/* Risk Alert */}
           <Card className="alert-card">
             <h3><Zap size={18} className="inline-icon" /> {t('sections.growth.results.risk_alert')}</h3>
             <p>{result.risk_alert}</p>
           </Card>
 
+          {/* Speech */}
           <div className="speech-container" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
             <SpeechButton
-              text={`${t('sections.growth.results.current_stage')}: ${t("stages." + result.current_stage) || result.current_stage}. ${t('sections.growth.results.irrigation')}: ${t('sections.growth.results.next_window', { days: result.next_irrigation_in_days })}. ${t('sections.growth.results.fertilizer')}: ${result.fertilizer_recommendation}. ${t('sections.growth.results.risk_alert')}: ${result.risk_alert}`}
+              text={`Stage: ${t("stages." + result.current_stage) || result.current_stage}. Accumulated GDD: ${result.hist.accumulated_gdd} degree days. ${t('sections.growth.results.irrigation')}: ${t('sections.growth.results.next_window', { days: result.next_irrigation_in_days })}. ${result.fertilizer_recommendation}. ${result.risk_alert}`}
               lang={i18n.language.split("-")[0]}
             />
           </div>
 
+          {/* Stage Timeline */}
           <Card className="timeline-card">
             <h3>{t('sections.growth.results.season_timeline', { crop: result.crop_type })}</h3>
             <div className="timeline">
@@ -240,9 +362,24 @@ function GrowthPlanner() {
   );
 }
 
-function Stat({ label, value, unit }) {
+function SoilGauge({ label, value, color }) {
+  // value is volumetric water content (m³/m³), typically 0.0 – 0.5
+  const pct = Math.min(100, Math.round((value / 0.5) * 100));
+  const status = pct < 20 ? "Dry" : pct < 50 ? "Low" : pct < 75 ? "Adequate" : "Saturated";
   return (
-    <div className="stat">
+    <div className="soil-gauge">
+      <div className="sg-label">{label}</div>
+      <div className="sg-track">
+        <div className="sg-fill" style={{ width: `${pct}%`, background: color }} />
+      </div>
+      <div className="sg-value">{(value * 100).toFixed(1)}% <span className="sg-status">{status}</span></div>
+    </div>
+  );
+}
+
+function Stat({ label, value, unit, highlight }) {
+  return (
+    <div className={`stat${highlight ? ' stat-highlight' : ''}`}>
       <span className="stat-value">{value}</span>
       <span className="stat-unit">{unit}</span>
       <span className="stat-label">{label}</span>
@@ -250,9 +387,13 @@ function Stat({ label, value, unit }) {
   );
 }
 
+
+
+
 // ── Section: Daily Advisory ───────────────────────────────────────────────────
-function DailyAdvisory() {
+function DailyAdvisory({ weatherData }) {
   const { t, i18n } = useTranslation();
+  const [useAutoWeather, setUseAutoWeather] = useState(true);
   const [form, setForm] = useState({
     soil_moisture: "",
     temperature: "",
@@ -265,7 +406,41 @@ function DailyAdvisory() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Auto-fill weather & soil fields when data is available
+  useEffect(() => {
+    if (useAutoWeather && weatherData) {
+      // Basic weather
+      setForm(f => ({
+        ...f,
+        temperature: String(weatherData.temp),
+        humidity: String(weatherData.humidity),
+        rainfall_last_3_days: String(weatherData.rainfall_last_3_days),
+      }));
+
+      // Fetch soil moisture if coords exist
+      if (weatherData.lat && weatherData.lon) {
+        fetchOpenMeteoCurrent(weatherData.lat, weatherData.lon)
+          .then(data => {
+            // Use 0-1cm moisture at index 6 (~6am) as representative
+            const sm = data.hourly.soil_moisture_0_to_1cm?.[6];
+            if (sm != null) {
+              // Convert volumetric fraction (0.0-0.5) to percentage (0-50+)
+              // Placeholder "45" implies 45%, so we multiply by 100
+              setForm(f => ({ ...f, soil_moisture: (sm * 100).toFixed(1) }));
+            }
+          })
+          .catch(err => console.error("Failed to auto-fetch soil moisture for Advisory:", err));
+      }
+    }
+  }, [weatherData, useAutoWeather]);
+
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const hasWeather = !!weatherData;
+  const isAuto = hasWeather && useAutoWeather;
+
+  // Fields that can be auto-filled
+  const autoFields = new Set(["temperature", "humidity", "rainfall_last_3_days", "soil_moisture"]);
 
   async function submit(e) {
     e.preventDefault();
@@ -306,6 +481,30 @@ function DailyAdvisory() {
         </div>
       </div>
 
+      {/* Weather source banner */}
+      {hasWeather ? (
+        <div className={`weather-source-banner ${isAuto ? 'banner-auto' : 'banner-manual'}`}>
+          <span className="banner-icon">{isAuto ? '🌤️' : '✏️'}</span>
+          <span className="banner-text">
+            {isAuto
+              ? `Using live weather from ${weatherData.city} — ${weatherData.temp}°C, ${weatherData.humidity}% humidity`
+              : 'Manual data entry mode'}
+          </span>
+          <button
+            type="button"
+            className="banner-toggle"
+            onClick={() => setUseAutoWeather(v => !v)}
+          >
+            {isAuto ? 'Enter Manually' : '⚡ Use Live Weather'}
+          </button>
+        </div>
+      ) : (
+        <div className="weather-source-banner banner-hint">
+          <span className="banner-icon">💡</span>
+          <span className="banner-text">Visit the <strong>Weather tab</strong> to auto-fill weather conditions from live data.</span>
+        </div>
+      )}
+
       <form onSubmit={submit} className="input-grid">
         {[
           ["soil_moisture", t('sections.advisory.form.soil_moisture'), "28", Droplets],
@@ -313,21 +512,29 @@ function DailyAdvisory() {
           ["humidity", t('sections.advisory.form.humidity'), "60", CloudRain],
           ["rainfall_last_3_days", t('sections.advisory.form.rainfall_last_3_days'), "12", CloudRain],
           ["days_since_last_irrigation", t('sections.advisory.form.days_since_irrigation'), "4", Calendar],
-        ].map(([key, label, placeholder, IconComp]) => (
-          <label className="field" key={key}>
-            <span>{label}</span>
-            <div className="input-icon-wrap">
-              {IconComp && <IconComp size={16} className="field-icon" />}
-              <input
-                type="number"
-                placeholder={placeholder}
-                value={form[key]}
-                onChange={e => set(key, e.target.value)}
-                required
-              />
-            </div>
-          </label>
-        ))}
+        ].map(([key, label, placeholder, IconComp]) => {
+          const fieldIsAuto = isAuto && autoFields.has(key);
+          return (
+            <label className={`field ${fieldIsAuto ? 'field-auto' : ''}`} key={key}>
+              <span>
+                {label}
+                {fieldIsAuto && <span className="auto-chip">AUTO</span>}
+              </span>
+              <div className="input-icon-wrap">
+                {IconComp && <IconComp size={16} className="field-icon" />}
+                <input
+                  type="number"
+                  placeholder={fieldIsAuto ? '' : placeholder}
+                  value={form[key]}
+                  onChange={e => set(key, e.target.value)}
+                  readOnly={fieldIsAuto}
+                  className={fieldIsAuto ? 'input-readonly' : ''}
+                  required
+                />
+              </div>
+            </label>
+          );
+        })}
 
         <label className="field">
           <span>{t('sections.advisory.form.current_crop_stage')}</span>
@@ -521,6 +728,12 @@ const TABS = [
 export default function App() {
   const { t } = useTranslation();
   const [tab, setTab] = useState("growth");
+  const [weatherData, setWeatherData] = useState(null);
+
+  // Lifted weather display state — persists across tab switches
+  const [weather, setWeather] = useState(null);
+  const [forecast, setForecast] = useState(null);
+  const [weatherLocation, setWeatherLocation] = useState("");
 
   return (
     <div className="app">
@@ -560,10 +773,18 @@ export default function App() {
 
       {/* Main */}
       <main className="main-content">
-        {tab === "growth" && <GrowthPlanner />}
-        {tab === "advisory" && <DailyAdvisory />}
+        {tab === "growth" && <GrowthPlanner weatherData={weatherData} />}
+        {tab === "advisory" && <DailyAdvisory weatherData={weatherData} />}
         {tab === "disease" && <DiseaseDetector />}
-        {tab === "weather" && <WeatherAdvisory />}
+        {tab === "weather" && <WeatherAdvisory
+          onWeatherFetched={setWeatherData}
+          weather={weather}
+          setWeather={setWeather}
+          forecast={forecast}
+          setForecast={setForecast}
+          location={weatherLocation}
+          setLocation={setWeatherLocation}
+        />}
       </main>
 
       {/* Footer */}
@@ -1167,6 +1388,80 @@ export default function App() {
           margin-top: auto;
         }
 
+        /* Weather Source Banner */
+        .weather-source-banner {
+          display: flex;
+          align-items: center;
+          gap: 0.65rem;
+          padding: 0.65rem 1rem;
+          border-radius: 10px;
+          margin-bottom: 1rem;
+          font-size: 0.82rem;
+          font-weight: 500;
+          flex-wrap: wrap;
+        }
+        .banner-auto {
+          background: linear-gradient(135deg, rgba(45, 107, 66, 0.12) 0%, rgba(77, 144, 99, 0.08) 100%);
+          border: 1.5px solid rgba(77, 144, 99, 0.4);
+          color: var(--green-700);
+        }
+        .banner-manual {
+          background: rgba(201, 107, 47, 0.07);
+          border: 1.5px solid rgba(201, 107, 47, 0.3);
+          color: var(--terracotta);
+        }
+        .banner-hint {
+          background: var(--cream-dark);
+          border: 1.5px dashed var(--border);
+          color: var(--text-muted);
+        }
+        .banner-icon { font-size: 1rem; flex-shrink: 0; }
+        .banner-text { flex: 1; line-height: 1.4; }
+        .banner-toggle {
+          flex-shrink: 0;
+          padding: 0.3rem 0.75rem;
+          border-radius: 6px;
+          border: 1.5px solid currentColor;
+          background: transparent;
+          color: inherit;
+          font-size: 0.75rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s;
+          font-family: 'DM Sans', sans-serif;
+        }
+        .banner-toggle:hover { opacity: 0.75; }
+
+        /* Auto chip on field labels */
+        .auto-chip {
+          display: inline-flex;
+          align-items: center;
+          margin-left: 0.4rem;
+          padding: 1px 6px;
+          background: var(--green-700);
+          color: white;
+          border-radius: 4px;
+          font-size: 0.6rem;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          vertical-align: middle;
+        }
+
+        /* Auto-filled field container */
+        .field-auto .input-icon-wrap input,
+        .field-auto select {
+          background: rgba(45, 107, 66, 0.06);
+          border-color: rgba(45, 107, 66, 0.35);
+        }
+
+        /* Read-only input */
+        .input-readonly {
+          cursor: default;
+          color: var(--green-700) !important;
+          font-weight: 600;
+        }
+        .input-readonly:focus { border-color: rgba(45, 107, 66, 0.35) !important; background: rgba(45, 107, 66, 0.06) !important; }
+
         @media (max-width: 600px) {
           .result-grid { grid-template-columns: 1fr; }
           .result-hero { grid-column: 1; }
@@ -1177,6 +1472,54 @@ export default function App() {
           .tab-btn { padding: 0.75rem 0.8rem; font-size: 0.78rem; }
           /* Allow input grid to be naturally responsive or force 1 col if very small */
         }
+
+        /* ── Growth Plan v2 ─────────────────────────────────── */
+        .growth-mini-form {
+          display: grid;
+          grid-template-columns: 1fr 1fr auto;
+          gap: 1rem;
+          align-items: end;
+          margin-bottom: 1.5rem;
+        }
+        @media (max-width: 640px) { .growth-mini-form { grid-template-columns: 1fr; } }
+        .field-hint { font-size: 0.75rem; color: var(--terracotta); margin: 0.25rem 0 0; }
+        .loading-phase { font-size: 0.78rem; font-weight: 500; opacity: 0.85; }
+        .gdd-source-note {
+          font-size: 0.75rem; color: var(--text-muted);
+          margin: 0.75rem 0 0; border-top: 1px solid var(--border); padding-top: 0.5rem;
+        }
+        .data-source-note { font-size: 0.7rem; color: var(--text-muted); text-align: right; margin: 0.5rem 0 0; opacity: 0.7; }
+        .stat-highlight .stat-value { color: #e8a045; text-shadow: 0 0 12px rgba(232,160,69,0.35); }
+        .soil-card { grid-column: span 1; }
+        .soil-gauges { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 0.75rem; }
+        .soil-gauge { display: flex; align-items: center; gap: 0.65rem; }
+        .sg-label { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); width: 4.5rem; flex-shrink: 0; }
+        .sg-track { flex: 1; height: 8px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; }
+        .sg-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+        .sg-value { font-size: 0.72rem; font-weight: 700; min-width: 7rem; }
+        .sg-status { font-weight: 400; opacity: 0.7; margin-left: 0.2rem; }
+        .soil-temp { font-size: 0.8rem; color: var(--text-muted); margin: 0.75rem 0 0; }
+        .forecast-card { grid-column: 1 / -1; }
+        .forecast-strip {
+          display: flex; gap: 0; overflow-x: auto;
+          margin-top: 0.75rem; padding-bottom: 0.5rem; scrollbar-width: thin;
+        }
+        .forecast-day {
+          display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+          flex: 1; min-width: 3.2rem; padding: 0.4rem 0.2rem;
+          border-right: 1px solid rgba(255,255,255,0.05);
+        }
+        .forecast-day:last-child { border-right: none; }
+        .fc-date { font-size: 0.62rem; color: var(--text-muted); font-weight: 600; text-align: center; }
+        .fc-max { font-size: 0.85rem; font-weight: 700; color: var(--text-primary); }
+        .fc-min { font-size: 0.72rem; color: var(--text-muted); }
+        .fc-rain { font-size: 0.65rem; }
+        .fc-bar-wrap {
+          width: 6px; height: 40px; background: rgba(255,255,255,0.06);
+          border-radius: 3px; display: flex; align-items: flex-end; overflow: hidden;
+        }
+        .fc-bar { width: 100%; border-radius: 3px; transition: height 0.4s ease; min-height: 3px; }
+        @media (max-width: 600px) { .forecast-card { grid-column: 1; } }
       `}</style>
     </div>
   );

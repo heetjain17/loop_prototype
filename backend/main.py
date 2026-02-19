@@ -33,9 +33,12 @@ print("✅ Advisory models ready.")
 class GrowthPlanRequest(BaseModel):
     crop_type: str
     sowing_date: str  # YYYY-MM-DD
-    district: str
+    city: str
     tmax: float
     tmin: float
+    accumulated_gdd: Optional[float] = None  # if provided by frontend, skip estimation
+    lat: Optional[float] = None
+    lon: Optional[float] = None
 
 
 class DailyAdvisoryRequest(BaseModel):
@@ -73,9 +76,10 @@ def growth_plan(req: GrowthPlanRequest, lang: str = "en"):
         result = get_growth_plan(
             crop_type=req.crop_type,
             sowing_date=req.sowing_date,
-            district=req.district,
+            city=req.city,
             tmax=req.tmax,
             tmin=req.tmin,
+            accumulated_gdd=req.accumulated_gdd,
             lang=lang,
         )
     except ValueError as e:
